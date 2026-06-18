@@ -1,0 +1,15 @@
+Copyright (c) 2026 VinmI123
+
+All rights reserved.
+
+This software, including its source code, design, structure, and concept, is protected by copyright law.
+
+No permission is granted to any person to use, copy, modify, merge, publish, distribute, sublicense, or sell copies of this software or any part of it, including its mechanics and design, without explicit written permission from the author.
+
+The software is provided for viewing and personal use only via the official hosted version. Any attempt to reproduce or replicate this project in whole or in part is strictly prohibited.
+
+Unauthorized use, reproduction, or distribution may result in legal action.
+
+By accessing or using this project, you acknowledge that the developer retains full ownership of all intellectual property.
+
+Side note: any attempt to claim ownership will be mentally flagged as highly suspicious by the original author.

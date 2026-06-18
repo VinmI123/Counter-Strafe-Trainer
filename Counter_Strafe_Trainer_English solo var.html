@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Counter-Strafe Trainer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root{
+  --bg:#0a0f0c;
+  --panel:#111813;
+  --panel-2:#0e1411;
+  --border:#1f2c24;
+  --green:#3dff7a;
+  --green-dim:#1c5c34;
+  --red:#ff4242;
+  --orange:#ff8c2b;
+  --yellow:#ffd23f;
+  --text:#e7f3ec;
+  --text-dim:#7c9286;
+  --mono:'Share Tech Mono', monospace;
+  --display:'Rajdhani', sans-serif;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at 50% -10%, #142019 0%, var(--bg) 55%, #060907 100%);
+  color:var(--text);
+  font-family:var(--display);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 14px;
+  position:relative;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:repeating-linear-gradient(0deg, rgba(61,255,122,0.025) 0px, rgba(61,255,122,0.025) 1px, transparent 1px, transparent 3px);
+  pointer-events:none;
+  z-index:0;
+}
+
+.app-shell{ position:relative; z-index:1; width:100%; max-width:480px; }
+
+.screen{ display:none; }
+.screen.active{ display:block; animation:fadeIn .35s ease; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+.panel{
+  background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:26px 24px;
+  position:relative;
+}
+.hud-corners::before, .hud-corners::after,
+.hud-corners .c2, .hud-corners .c3{
+  content:"";
+  position:absolute;
+  width:16px; height:16px;
+  border:2px solid var(--green);
+  opacity:.6;
+}
+.hud-corners::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+.hud-corners::after{ top:-1px; right:-1px; border-left:none; border-bottom:none; }
+
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.18em;
+  color:var(--green);
+  text-transform:uppercase;
+  margin:0 0 6px 0;
+}
+.title{
+  font-size:30px;
+  font-weight:700;
+  letter-spacing:.03em;
+  margin:0 0 6px 0;
+  text-transform:uppercase;
+  line-height:1.05;
+}
+.title .accent{ color:var(--green); }
+.subtitle{
+  color:var(--text-dim);
+  font-size:14px;
+  margin:0 0 18px 0;
+}
+
+.howto{
+  margin:0 0 22px 0;
+  padding-left:22px;
+  font-size:13.5px;
+  line-height:1.55;
+  color:var(--text);
+}
+.howto li{ margin-bottom:8px; }
+.howto li::marker{ color:var(--green); font-family:var(--mono); }
+.tag-green{ color:var(--green); font-weight:600; }
+
+.settings{ display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
+.setting-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.setting-label{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--text-dim);
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  min-width:90px;
+}
+.segmented{
+  display:flex;
+  border:1px solid var(--border);
+  border-radius:4px;
+  overflow:hidden;
+}
+.seg-btn{
+  background:transparent;
+  border:none;
+  color:var(--text-dim);
+  font-family:var(--mono);
+  font-size:12px;
+  padding:7px 11px;
+  cursor:pointer;
+  transition:background .15s, color .15s;
+  border-right:1px solid var(--border);
+}
+.seg-btn:last-child{ border-right:none; }
+.seg-btn:hover{ color:var(--text); }
+.seg-btn.active{ background:var(--green); color:#06140a; font-weight:700; }
+.seg-btn:focus-visible, .btn-start:focus-visible, .btn-ghost:focus-visible, .btn-end:focus-visible{
+  outline:2px solid var(--green); outline-offset:2px;
+}
+
+.btn-start{
+  width:100%;
+  background:linear-gradient(180deg, var(--green) 0%, #23c95a 100%);
+  color:#06140a;
+  border:none;
+  border-radius:4px;
+  padding:14px;
+  font-family:var(--display);
+  font-weight:700;
+  font-size:16px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  box-shadow:0 0 0 1px rgba(61,255,122,.3), 0 8px 22px -8px rgba(61,255,122,.45);
+  transition:transform .12s, box-shadow .12s;
+}
+.btn-start:hover{ transform:translateY(-1px); box-shadow:0 0 0 1px rgba(61,255,122,.5), 0 10px 26px -8px rgba(61,255,122,.6); }
+.btn-start:active{ transform:translateY(0); }
+
+.btn-ghost{
+  width:100%;
+  background:transparent;
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:13px;
+  font-family:var(--display);
+  font-weight:600;
+  font-size:14px;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  cursor:pointer;
+  margin-top:10px;
+}
+.btn-ghost:hover{ border-color:var(--green); color:var(--green); }
+
+.hint{
+  text-align:center;
+  font-family:var(--mono);
+  font-size:11.5px;
+  color:var(--text-dim);
+  margin:16px 0 0 0;
+}
+kbd{
+  background:#1a241d;
+  border:1px solid var(--border);
+  border-bottom-width:2px;
+  border-radius:3px;
+  padding:1px 6px;
+  font-family:var(--mono);
+  color:var(--text);
+}
+
+/* GAME SCREEN */
+.hud-top{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:12px;
+  padding:0 4px;
+}
+.hud-stat{ display:flex; flex-direction:column; gap:2px; }
+.hud-label{ font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; color:var(--text-dim); }
+.hud-value{ font-family:var(--mono); font-size:16px; color:var(--green); font-weight:700; }
+.btn-end{
+  margin-left:auto;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  border-radius:4px;
+  width:30px; height:30px;
+  cursor:pointer;
+  font-size:14px;
+  line-height:1;
+}
+.btn-end:hover{ border-color:var(--red); color:var(--red); }
+
+.scope-card{ padding:22px 20px 18px; }
+
+.prompt-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:14px;
+}
+.prompt-arrow{ font-size:26px; color:var(--green); }
+.prompt-text{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.lamp-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:20px;
+  font-family:var(--mono);
+  font-size:13px;
+  letter-spacing:.05em;
+}
+.lamp{
+  width:14px; height:14px;
+  border-radius:50%;
+  display:inline-block;
+  box-shadow:0 0 8px 1px currentColor;
+}
+.lamp-wait{ background:var(--red); color:var(--red); }
+.lamp-go{ background:var(--green); color:var(--green); animation:pulse .5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce){ .lamp-go{ animation:none; } }
+@keyframes pulse{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.55; transform:scale(1.25); } }
+.lamp-text{ color:var(--text-dim); }
+.lamp-go ~ .lamp-text{ color:var(--green); }
+
+.velocity-gauge{
+  position:relative;
+  height:34px;
+  border-radius:5px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  display:flex;
+}
+.zone{ height:100%; }
+.zone-red{ flex-basis:22.5%; background:rgba(255,66,66,.28); }
+.zone-orange{ flex-basis:12.5%; background:rgba(255,140,43,.28); }
+.zone-yellow{ flex-basis:9%; background:rgba(255,210,63,.28); }
+.zone-green{ flex-basis:12%; background:rgba(61,255,122,.32); }
+
+.gauge-center-line{
+  position:absolute; left:50%; top:0; bottom:0;
+  width:1px; background:rgba(255,255,255,.25);
+}
+.gauge-marker{
+  position:absolute; top:-3px; bottom:-3px;
+  width:4px; border-radius:2px;
+  background:var(--text);
+  box-shadow:0 0 10px 2px rgba(231,243,236,.7);
+  left:50%;
+  transform:translateX(-50%);
+  transition:none;
+}
+
+.gauge-caption{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:8px;
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--text-dim);
+  letter-spacing:.05em;
+}
+.speed-readout{ font-size:14px; font-weight:700; }
+.speed-green{ color:var(--green); }
+.speed-yellow{ color:var(--yellow); }
+.speed-orange{ color:var(--orange); }
+.speed-red{ color:var(--red); }
+
+.keys-row{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:22px;
+}
+.key-chip{
+  font-family:var(--mono);
+  font-weight:700;
+  font-size:14px;
+  width:44px; height:38px;
+  border:1px solid var(--border);
+  border-bottom-width:3px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-dim);
+  background:#0d1310;
+  transition:background .08s, color .08s, border-color .08s, transform .08s;
+}
+.key-chip-wide{ width:66px; font-size:12px; }
+.key-active{
+  background:var(--green);
+  color:#06140a;
+  border-color:var(--green);
+  transform:translateY(1px);
+}
+
+.toast{
+  margin-top:16px;
+  text-align:center;
+  font-family:var(--mono);
+  font-size:12.5px;
+  padding:0;
+  height:0;
+  overflow:hidden;
+  border-radius:5px;
+  opacity:0;
+  transition:opacity .18s;
+}
+.toast.show{
+  opacity:1;
+  height:auto;
+  padding:10px 12px;
+  border:1px solid var(--border);
+}
+.toast-perfect{ color:var(--green); border-color:var(--green); }
+.toast-good{ color:var(--yellow); border-color:var(--yellow); }
+.toast-partial{ color:var(--orange); border-color:var(--orange); }
+.toast-miss{ color:var(--red); border-color:var(--red); }
+.toast-fail{ color:var(--red); border-color:var(--red); }
+
+.history-row{
+  display:flex;
+  gap:5px;
+  justify-content:center;
+  margin-top:18px;
+  flex-wrap:wrap;
+  min-height:10px;
+}
+.hist-dot{ width:9px; height:9px; border-radius:50%; }
+.hist-perfect{ background:var(--green); }
+.hist-good{ background:var(--yellow); }
+.hist-partial{ background:var(--orange); }
+.hist-miss{ background:var(--red); }
+.hist-fail{ background:#5a2a2a; border:1px solid var(--red); }
+
+.legend{
+  text-align:center;
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--text-dim);
+  margin:16px 0 0 0;
+}
+
+/* SUMMARY */
+.summary-title{ font-size:20px; margin:0 0 18px 0; font-weight:700; }
+.summary-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:22px;
+}
+.summary-cell{
+  border:1px solid var(--border);
+  border-radius:5px;
+  padding:12px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.summary-val{ font-family:var(--mono); font-size:20px; font-weight:700; color:var(--green); }
+.summary-label{ font-family:var(--mono); font-size:10.5px; color:var(--text-dim); letter-spacing:.05em; text-transform:uppercase; }
+
+@media (max-width:420px){
+  .panel{ padding:20px 16px; }
+  .title{ font-size:25px; }
+  .prompt-text{ font-size:18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <section id="screenMenu" class="screen active">
+    <div class="panel hud-corners">
+      <p class="eyebrow">CS Movement Drill</p>
+      <h1 class="title">Counter-Strafe<span class="accent">.</span>Тренажер</h1>
+      <p class="subtitle">Train instant stopping before shooting</p>
+
+      <ol class="howto">
+        <li>Hold the indicated key (<strong>A</strong> or <strong>D</strong>) — Speed is increasing.</li>
+        <li>The indicator turns <span class="tag-green">green</span> — instantly tap <strong>opposite</strong> key to reduce speed to zero.</li>
+        <li>Click <strong>LMB</strong> exactly at the moment of stopping. The closer to zero, the more accurate the shot.</li>
+      </ol>
+
+      <div class="settings">
+        <div class="setting-row">
+          <span class="setting-label">Difficulty</span>
+          <div class="segmented" data-group="difficulty">
+            <button class="seg-btn" data-value="easy">Easy</button>
+            <button class="seg-btn active" data-value="medium">Medium</button>
+            <button class="seg-btn" data-value="hard">Hard</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Rounds</span>
+          <div class="segmented" data-group="rounds">
+            <button class="seg-btn" data-value="10">10</button>
+            <button class="seg-btn active" data-value="20">20</button>
+            <button class="seg-btn" data-value="30">30</button>
+            <button class="seg-btn" data-value="0">∞</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Direction</span>
+          <div class="segmented" data-group="direction">
+            <button class="seg-btn active" data-value="both">A / D</button>
+            <button class="seg-btn" data-value="a">A Only</button>
+            <button class="seg-btn" data-value="d">D Only</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Sound</span>
+          <div class="segmented" data-group="sound">
+            <button class="seg-btn active" data-value="on">On</button>
+            <button class="seg-btn" data-value="off">Off</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btnStart" class="btn-start">Start Training</button>
+      <p class="hint">Keys: <kbd>A</kbd> <kbd>D</kbd> + Left mouse button click</p>
+    </div>
+  </section>
+
+  <section id="screenGame" class="screen">
+    <div class="hud-top">
+      <div class="hud-stat"><span class="hud-label">ROUND</span><span id="statRound" class="hud-value">1/20</span></div>
+      <div class="hud-stat"><span class="hud-label">STREAK</span><span id="statStreak" class="hud-value">0</span></div>
+      <div class="hud-stat"><span class="hud-label">ACCURACY</span><span id="statAccuracy" class="hud-value">—</span></div>
+      <button id="btnEnd" class="btn-end" title="End Training">✕</button>
+    </div>
+
+    <div class="panel hud-corners scope-card">
+      <div class="prompt-row">
+        <span id="promptArrow" class="prompt-arrow">←</span>
+        <span id="promptText" class="prompt-text">HOLD A</span>
+      </div>
+
+      <div class="lamp-row">
+        <span id="lamp" class="lamp lamp-wait"></span>
+        <span id="lampText" class="lamp-text">WAITING…</span>
+      </div>
+
+      <div class="velocity-gauge">
+        <div class="zone zone-red"></div>
+        <div class="zone zone-orange"></div>
+        <div class="zone zone-yellow"></div>
+        <div class="zone zone-green"></div>
+        <div class="zone zone-yellow"></div>
+        <div class="zone zone-orange"></div>
+        <div class="zone zone-red"></div>
+        <div class="gauge-center-line"></div>
+        <div id="gaugeMarker" class="gauge-marker"></div>
+      </div>
+      <div class="gauge-caption">
+        <span>← LEFT</span>
+        <span id="speedReadout" class="speed-readout speed-green">0%</span>
+        <span>RIGHT →</span>
+      </div>
+
+      <div class="keys-row">
+        <div id="keyA" class="key-chip">A</div>
+        <div id="keyD" class="key-chip">D</div>
+        <div id="keyM" class="key-chip key-chip-wide">LMB</div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+    </div>
+
+    <div class="history-row" id="historyRow"></div>
+    <p class="legend">A/D — movement · opposite key — counter-strafe · LMB — shoot</p>
+  </section>
+
+  <section id="screenSummary" class="screen">
+    <div class="panel hud-corners">
+      <p class="eyebrow">Training Results</p>
+      <h2 class="summary-title" id="summaryTitle">Session Complete</h2>
+
+      <div class="summary-grid" id="summaryGrid"></div>
+
+      <button id="btnRetry" class="btn-start">Again</button>
+      <button id="btnMenu" class="btn-ghost">Main Menu</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var els = {
+    statRound: document.getElementById('statRound'),
+    statStreak: document.getElementById('statStreak'),
+    statAccuracy: document.getElementById('statAccuracy'),
+    promptArrow: document.getElementById('promptArrow'),
+    promptText: document.getElementById('promptText'),
+    lamp: document.getElementById('lamp'),
+    lampText: document.getElementById('lampText'),
+    gaugeMarker: document.getElementById('gaugeMarker'),
+    speedReadout: document.getElementById('speedReadout'),
+    keyA: document.getElementById('keyA'),
+    keyD: document.getElementById('keyD'),
+    keyM: document.getElementById('keyM'),
+    toast: document.getElementById('toast'),
+    historyRow: document.getElementById('historyRow'),
+    summaryTitle: document.getElementById('summaryTitle'),
+    summaryGrid: document.getElementById('summaryGrid'),
+    btnStart: document.getElementById('btnStart'),
+    btnEnd: document.getElementById('btnEnd'),
+    btnRetry: document.getElementById('btnRetry'),
+    btnMenu: document.getElementById('btnMenu'),
+    screenMenu: document.getElementById('screenMenu'),
+    screenGame: document.getElementById('screenGame'),
+    screenSummary: document.getElementById('screenSummary')
+  };
+
+  var DIFF = {
+    easy:   { minDelay:1300, maxDelay:2700, reactionTimeout:950 },
+    medium: { minDelay:950,  maxDelay:2100, reactionTimeout:650 },
+    hard:   { minDelay:650,  maxDelay:1500, reactionTimeout:450 }
+  };
+
+  var FAST_TAU = 0.09;
+  var SLOW_TAU = 0.4;
+
+  var settings = { difficulty:'medium', rounds:20, direction:'both', sound:true };
+
+  var audioCtx = null;
+  var heldKeys = new Set();
+  var activeKey = null;
+  var v = 0;
+  var lastFrameTime = null;
+  var rafId = null;
+  var session = null;
+  var round = null;
+  var stats = null;
+
+  function setScreen(name){
+    [els.screenMenu, els.screenGame, els.screenSummary].forEach(function(s){ s.classList.remove('active'); });
+    if(name === 'menu') els.screenMenu.classList.add('active');
+    if(name === 'game') els.screenGame.classList.add('active');
+    if(name === 'summary') els.screenSummary.classList.add('active');
+  }
+
+  document.querySelectorAll('.segmented').forEach(function(group){
+    group.addEventListener('click', function(e){
+      var btn = e.target.closest('.seg-btn');
+      if(!btn) return;
+      group.querySelectorAll('.seg-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var key = group.dataset.group;
+      var val = btn.dataset.value;
+      if(key === 'difficulty') settings.difficulty = val;
+      else if(key === 'rounds') settings.rounds = parseInt(val, 10);
+      else if(key === 'direction') settings.direction = val;
+      else if(key === 'sound') settings.sound = (val === 'on');
+    });
+  });
+
+  function initAudio(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e){ audioCtx = null; }
+    }
+  }
+
+  function beep(freq, dur, type, vol){
+    if(!settings.sound || !audioCtx) return;
+    var t = audioCtx.currentTime;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.16;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.stop(t + dur + 0.03);
+  }
+  function sfxSignal(){ beep(880, 0.1, 'square', 0.15); }
+  function sfxPerfect(){ beep(660, 0.08, 'sine', 0.18); setTimeout(function(){ beep(990, 0.1, 'sine', 0.18); }, 70); }
+  function sfxGood(){ beep(520, 0.1, 'sine', 0.16); }
+  function sfxFail(){ beep(160, 0.18, 'sawtooth', 0.18); }
+
+  function pickDir(){
+    if(session.direction === 'a') return 'KeyA';
+    if(session.direction === 'd') return 'KeyD';
+    return Math.random() < 0.5 ? 'KeyA' : 'KeyD';
+  }
+  function counterKeyOf(dir){ return dir === 'KeyA' ? 'KeyD' : 'KeyA'; }
+
+  function startSession(){
+    stats = { total:0, perfect:0, good:0, partial:0, miss:0, fail:0, reactSum:0, reactCount:0, streak:0, bestStreak:0 };
+    session = { diff: DIFF[settings.difficulty], totalRounds: settings.rounds, direction: settings.direction };
+    els.historyRow.innerHTML = '';
+    setScreen('game');
+    v = 0; heldKeys.clear(); activeKey = null;
+    lastFrameTime = null;
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+    beginRound(1);
+  }
+
+  function beginRound(n){
+    round = {
+      n: n,
+      dir: pickDir(),
+      phase: 'waiting',
+      tGreen: null,
+      signalAt: null,
+      reactionDeadline: null,
+      counterPressed: false,
+      tCounterDown: null,
+      tCounterUp: null,
+      tapMs: null,
+      reactMs: null,
+      clickDeadline: null
+    };
+    updatePromptUI();
+    setLamp('wait', 'WAITING…');
+    updateHUD();
+  }
+
+  function updatePromptUI(){
+    var isA = round.dir === 'KeyA';
+    els.promptArrow.textContent = isA ? '←' : '→';
+    els.promptText.textContent = 'HOLD ' + (isA ? 'A' : 'D');
+  }
+
+  function setLamp(state, text){
+    els.lamp.className = 'lamp lamp-' + state;
+    els.lampText.textContent = text;
+  }
+
+  function loop(now){
+    rafId = requestAnimationFrame(loop);
+    if(lastFrameTime === null) lastFrameTime = now;
+    var dt = Math.min((now - lastFrameTime) / 1000, 0.05);
+    lastFrameTime = now;
+
+    var target = activeKey === 'KeyA' ? -1 : (activeKey === 'KeyD' ? 1 : 0);
+    var tau = activeKey ? FAST_TAU : SLOW_TAU;
+    var factor = 1 - Math.exp(-dt / tau);
+    v += (target - v) * factor;
+    if(v > 1) v = 1;
+    if(v < -1) v = -1;
+
+    renderGauge();
+    updateKeyChips();
+
+    if(!round || round.phase === 'resolved') return;
+
+    if(round.phase === 'waiting'){
+      var needSign = round.dir === 'KeyA' ? -1 : 1;
+      if(activeKey === round.dir && Math.sign(v) === needSign && Math.abs(v) >= 0.85){
+        round.phase = 'running';
+        var d = session.diff;
+        round.signalAt = now + (d.minDelay + Math.random() * (d.maxDelay - d.minDelay));
+      }
+    } else if(round.phase === 'running'){
+      if(activeKey !== round.dir){
+        failRound('Released the key too early — keep moving until the signal!');
+        return;
+      }
+      if(now >= round.signalAt){
+        round.phase = 'signal';
+        round.tGreen = now;
+        round.reactionDeadline = now + session.diff.reactionTimeout;
+        setLamp('go', 'FIRE! COUNTER-STRAFE!');
+        sfxSignal();
+      }
+    } else if(round.phase === 'signal'){
+      if(!round.counterPressed && now >= round.reactionDeadline){
+        failRound('Missed — reaction too slow.');
+        return;
+      }
+      if(round.counterPressed && round.clickDeadline && now >= round.clickDeadline){
+        failRound('Forgot to press LMB after stopping.');
+        return;
+      }
+    }
+  }
+
+  function onDirKeyDown(code){
+    if(!round || round.phase === 'resolved') return;
+    if(round.phase === 'signal' && code === counterKeyOf(round.dir) && !round.counterPressed){
+      round.counterPressed = true;
+      round.tCounterDown = performance.now();
+      round.reactMs = round.tCounterDown - round.tGreen;
+      round.clickDeadline = round.tCounterDown + 1500;
+      setLamp('go', 'STOP!');
+    } else if(round.phase === 'running' && code === counterKeyOf(round.dir)){
+      failRound('Too early! Wait for the green signal.');
+    }
+  }
+
+  function onDirKeyUp(code){
+    if(!round) return;
+    if(round.counterPressed && code === counterKeyOf(round.dir) && round.tCounterUp === null){
+      round.tCounterUp = performance.now();
+      round.tapMs = round.tCounterUp - round.tCounterDown;
+    }
+  }
+
+  function onShoot(){
+    if(!round || round.phase === 'resolved') return;
+    if(round.phase === 'waiting' || round.phase === 'running'){
+      failRound('Premature shot — wait for the signal!');
+      return;
+    }
+    if(round.phase === 'signal'){
+      flashKey(els.keyM);
+      resolveRound(v);
+    }
+  }
+
+  function flashKey(el){
+    el.classList.add('key-active');
+    setTimeout(function(){ el.classList.remove('key-active'); }, 130);
+  }
+
+  function gradeFromV(absV){
+    if(absV <= 0.12) return { key:'perfect', label:'PERFECT' };
+    if(absV <= 0.30) return { key:'good', label:'GOOD' };
+    if(absV <= 0.55) return { key:'partial', label:'PARTIAL' };
+    return { key:'miss', label:'MISS' };
+  }
+
+  function failRound(message){
+    round.phase = 'resolved';
+    stats.total++; stats.fail++; stats.streak = 0;
+    pushHistory('fail');
+    sfxFail();
+    showToast(message, 'fail');
+    updateHUD();
+    nextOrEnd();
+  }
+
+  function resolveRound(vClick){
+    round.phase = 'resolved';
+    var absV = Math.abs(vClick);
+    var grade = gradeFromV(absV);
+    stats.total++; stats[grade.key]++;
+    if(grade.key === 'perfect' || grade.key === 'good'){
+      stats.streak++;
+      stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
+    } else {
+      stats.streak = 0;
+    }
+    if(round.reactMs !== null){ stats.reactSum += round.reactMs; stats.reactCount++; }
+    pushHistory(grade.key);
+
+    if(grade.key === 'perfect') sfxPerfect();
+    else if(grade.key === 'good') sfxGood();
+    else sfxFail();
+
+    var reactTxt = round.reactMs !== null ? Math.round(round.reactMs) + ' ms' : '—';
+    var tapTxt = round.tapMs !== null ? Math.round(round.tapMs) + ' ms' : (round.counterPressed ? 'holding' : '—');
+    var speedTxt = Math.round(absV * 100) + '%';
+    showToast(grade.label + ' · speed ' + speedTxt + ' · reaction ' + reactTxt + ' · tap ' + tapTxt, grade.key);
+
+    updateHUD();
+    nextOrEnd();
+  }
+
+  function pushHistory(key){
+    var dot = document.createElement('span');
+    dot.className = 'hist-dot hist-' + key;
+    els.historyRow.appendChild(dot);
+    while(els.historyRow.children.length > 20) els.historyRow.removeChild(els.historyRow.firstChild);
+  }
+
+  var toastTimer = null;
+  function showToast(text, kind){
+    els.toast.textContent = text;
+    els.toast.className = 'toast show toast-' + kind;
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ els.toast.className = 'toast'; }, 3000);
+  }
+
+  function nextOrEnd(){
+    var isInfinite = session.totalRounds === 0;
+    var nextN = round.n + 1;
+    if(!isInfinite && nextN > session.totalRounds){
+      setTimeout(endSession, 3000);
+    } else {
+      setTimeout(function(){ beginRound(nextN); }, 2000);
+    }
+  }
+
+  function endSession(){
+    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    renderSummary();
+    setScreen('summary');
+  }
+
+  function updateHUD(){
+    var totalLabel = session.totalRounds === 0 ? '∞' : session.totalRounds;
+    els.statRound.textContent = (round ? round.n : 1) + '/' + totalLabel;
+    els.statStreak.textContent = stats.streak;
+    var acc = stats.total ? Math.round(((stats.perfect + stats.good) / stats.total) * 100) : 0;
+    els.statAccuracy.textContent = stats.total ? acc + '%' : '—';
+  }
+
+  function renderGauge(){
+    var pct = ((v + 1) / 2) * 100;
+    els.gaugeMarker.style.left = pct + '%';
+    var absV = Math.abs(v);
+    els.speedReadout.textContent = Math.round(absV * 100) + '%';
+    var cls = 'speed-green';
+    if(absV > 0.55) cls = 'speed-red';
+    else if(absV > 0.30) cls = 'speed-orange';
+    else if(absV > 0.12) cls = 'speed-yellow';
+    els.speedReadout.className = 'speed-readout ' + cls;
+  }
+
+  function updateKeyChips(){
+    els.keyA.classList.toggle('key-active', activeKey === 'KeyA');
+    els.keyD.classList.toggle('key-active', activeKey === 'KeyD');
+  }
+
+  function renderSummary(){
+    els.summaryTitle.textContent = 'Rounds Played: ' + stats.total;
+    var avgReact = stats.reactCount ? Math.round(stats.reactSum / stats.reactCount) : null;
+    var acc = stats.total ? Math.round(((stats.perfect + stats.good) / stats.total) * 100) : 0;
+    var rows = [
+      ['Perfect', stats.perfect],
+      ['Good', stats.good],
+      ['Partial', stats.partial],
+      ['Miss', stats.miss],
+      ['Failures', stats.fail],
+      ['Accuracy', acc + '%'],
+      ['Avg reaction', avgReact !== null ? avgReact + ' ms' : '—'],
+      ['Best streak', stats.bestStreak]
+    ];
+    els.summaryGrid.innerHTML = rows.map(function(r){
+      return '<div class="summary-cell"><span class="summary-val">' + r[1] + '</span><span class="summary-label">' + r[0] + '</span></div>';
+    }).join('');
+  }
+
+  window.addEventListener('keydown', function(e){
+    if(e.code === 'KeyA' || e.code === 'KeyD'){
+      e.preventDefault();
+      if(e.repeat) return;
+      heldKeys.add(e.code);
+      activeKey = e.code;
+      onDirKeyDown(e.code);
+    }
+  });
+  window.addEventListener('keyup', function(e){
+    if(e.code === 'KeyA' || e.code === 'KeyD'){
+      e.preventDefault();
+      heldKeys.delete(e.code);
+      if(activeKey === e.code){
+        var remaining = null;
+        heldKeys.forEach(function(k){ remaining = k; });
+        activeKey = remaining;
+      }
+      onDirKeyUp(e.code);
+    }
+  });
+  window.addEventListener('mousedown', function(e){
+    if(e.button !== 0) return;
+    if(!els.screenGame.classList.contains('active')) return;
+    onShoot();
+  });
+
+  els.btnStart.addEventListener('click', function(){ initAudio(); startSession(); });
+  els.btnEnd.addEventListener('click', function(){ endSession(); });
+  els.btnRetry.addEventListener('click', function(){ startSession(); });
+  els.btnMenu.addEventListener('click', function(){ setScreen('menu'); });
+
+})();
+</script>
+</body>
+</html>
